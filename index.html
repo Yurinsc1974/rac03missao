@@ -3,33 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Painel ao vivo – RAC 03 • Mini‑ranking (JSONP)</title>
+  <title>Painel RAC 03 – Ranking ao vivo</title>
   <style>
-    :root{ --bg:#0b1220; --card:#111a2b; --panel:#0e1628; --muted:#a4b1cd; --text:#eaf1ff; --accent:#4f9cff; --accent2:#22d3ee; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; }
+    :root{ --bg:#0b1220; --card:#111a2b; --panel:#0e1628; --muted:#a4b1cd; --text:#eaf1ff; --accent:#4f9cff; --accent2:#22d3ee; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; }
     *{box-sizing:border-box}
-    body{margin:0; font:400 16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans',sans-serif; color:var(--text); background:radial-gradient(1200px 800px at 10% -10%, #173057 0%, #0b1220 50%, #090f1a 100%)}
-    .wrap{max-width:1200px; margin:0 auto; padding:28px 18px 60px}
-    header{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+    html,body{height:100%}
+    body{margin:0; font:400 16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans',sans-serif; color:var(--text); background:radial-gradient(1200px 800px at 10% -10%, #173057 0%, #0b1220 50%, #090f1a 100%);}
+    .wrap{width:100%; max-width:1400px; margin:0 auto; padding:16px 18px 22px; height:100%; display:flex; flex-direction:column; gap:12px}
+    header{display:flex; align-items:center; justify-content:space-between; gap:14px}
+    .brand-title{display:flex; align-items:center; gap:12px}
     .brand{height:40px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
     h1{font-size:22px; margin:0}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); box-shadow:var(--shadow)}
-    .toolbar{display:grid; grid-template-columns: 1fr auto auto; gap:12px; padding:14px}
-    .toolbar .left{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .toolbar input[type=text]{width:480px; max-width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:#0d1526; color:var(--text)}
-    .toolbar select, .toolbar button{padding:10px 12px; border-radius:10px; border:0; font-weight:700}
-    .btn{cursor:pointer}
-    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#06101f}
-    .btn-ghost{background:rgba(255,255,255,.08); color:var(--text)}
-    .grid{display:grid; grid-template-columns:1.1fr .9fr; gap:14px; margin-top:14px}
-    .panel{background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:14px}
+    .status{color:#cbd6ee; font-size:13px}
+
+    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; flex:1; min-height:0; }
+
+    .panel{background:var(--panel); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:14px; display:flex; flex-direction:column; min-height:0}
     .panel h2{margin:0 0 8px; font-size:18px}
+
     table{width:100%; border-collapse:separate; border-spacing:0 8px}
     thead th{font-size:12px; color:#cbd6ee; text-transform:uppercase; letter-spacing:.3px; text-align:left; padding:0 10px}
     tbody tr{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08)}
     tbody td{padding:10px; vertical-align:middle}
-    tbody tr{border-radius:12px}
     tbody tr td:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
     tbody tr td:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
+
     .badge{padding:4px 8px; border-radius:999px; font-size:12px}
     .risk-cons{background:rgba(34,197,94,.15); color:#86efac}
     .risk-mod{background:rgba(245,158,11,.15); color:#fcd34d}
@@ -37,58 +35,39 @@
     .att-bx{background:rgba(239,68,68,.15); color:#fca5a5}
     .att-md{background:rgba(245,158,11,.15); color:#fcd34d}
     .att-al{background:rgba(34,197,94,.15); color:#86efac}
+
     .small{color:var(--muted); font-size:12px}
-    .kpis{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px}
+
+    .kpis{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:10px}
     .kpi{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px}
     .kpi .val{font-size:22px; font-weight:800}
     .kpi .lbl{color:#cbd6ee; font-size:12px}
-    .charts{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+
+    .charts{display:grid; grid-template-columns: 1fr 1fr; gap:10px; min-height:0}
     .viz{height:220px}
+
+    .body{flex:1; min-height:0; overflow:auto}
+
+    .hint{position:fixed; right:14px; bottom:10px; color:#94a3b8; font-size:12px; opacity:.5}
+    .hint kbd{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-bottom-width:2px; padding:2px 6px; border-radius:6px}
+
     @media (max-width: 980px){ .grid{grid-template-columns:1fr} .charts{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <img class="brand" src="https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg" alt="Vale">
-      <div>
-        <h1>Painel ao vivo2 – RAC 03 • Mini‑ranking (JSONP)</h1>
-        <div class="small">Consulta com JSONP (sem CORS). Mostra os últimos 50 registros.</div>
+      <div class="brand-title">
+        <img class="brand" src="https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg" alt="Vale"/>
+        <h1>Painel RAC 03 – Ranking ao vivo</h1>
       </div>
+      <div class="status" id="status">—</div>
     </header>
-
-    <div class="card toolbar">
-      <div class="left">
-        <label class="small" for="url">Endpoint</label>
-        <input id="url" type="text" value="https://script.google.com/macros/s/AKfycbw_Spraer70nSqkNFu8BLZUCDhdhaaLqcjnqQ_wnRjpY5qGMY-wakGaU3wthdlp1XmIwg/exec?action=list"/>
-        <label class="small">Ordenar</label>
-        <select id="order">
-          <option value="media_asc">Média (crescente)</option>
-          <option value="media_desc">Média (decrescente)</option>
-          <option value="data_desc">Mais recentes</option>
-          <option value="data_asc">Mais antigos</option>
-        </select>
-        <label class="small">Filtro de perfil</label>
-        <select id="filtro">
-          <option value="">Todos</option>
-          <option value="Perfil Conservador">Conservador</option>
-          <option value="Perfil Moderado">Moderado</option>
-          <option value="Perfil Ousado">Ousado</option>
-        </select>
-      </div>
-      <div>
-        <button id="btnAtualizar" class="btn btn-ghost">Atualizar agora</button>
-      </div>
-      <div>
-        <button id="btnAuto" class="btn btn-primary" data-on="1">Auto: ligado</button>
-      </div>
-    </div>
 
     <div class="grid">
       <div class="panel">
         <h2>Ranking</h2>
-        <div class="small" id="status">—</div>
-        <div style="margin-top:10px; overflow:auto; max-height:520px">
+        <div class="body">
           <table>
             <thead>
               <tr>
@@ -107,7 +86,7 @@
 
       <div class="panel">
         <h2>Indicadores</h2>
-        <div class="kpis" style="margin-bottom:10px">
+        <div class="kpis">
           <div class="kpi"><div class="val" id="k_total">0</div><div class="lbl">Participantes</div></div>
           <div class="kpi"><div class="val" id="k_media">0.00</div><div class="lbl">Média geral</div></div>
           <div class="kpi"><div class="val" id="k_cons">0</div><div class="lbl">% Conservador</div></div>
@@ -121,29 +100,63 @@
     </div>
   </div>
 
+  <div class="hint">Dê <kbd>F</kbd> para tela cheia · <kbd>R</kbd> para atualizar</div>
+
 <script>
 (function(){
-  const urlInput = document.getElementById('url');
-  const orderSel = document.getElementById('order');
-  const filtroSel = document.getElementById('filtro');
-  const btnAtualizar = document.getElementById('btnAtualizar');
-  const btnAuto = document.getElementById('btnAuto');
-  const tbody = document.getElementById('tbody');
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Spraer70nSqkNFu8BLZUCDhdhaaLqcjnqQ_wnRjpY5qGMY-wakGaU3wthdlp1XmIwg/exec'; // mantido somente no código (não exibido na UI)
+  const REFRESH_MS = 15000;      // auto-refresh
+  const ORDER_MODE = 'data_desc';// ordem padrão: mais recentes
+
   const status = document.getElementById('status');
+  const tbody  = document.getElementById('tbody');
   const k_total = document.getElementById('k_total');
   const k_media = document.getElementById('k_media');
   const k_cons  = document.getElementById('k_cons');
   const k_ous   = document.getElementById('k_ous');
   let timer = 0;
 
-  // ===== Utils
+  // ===== Utils visual
   function parseDate(d){ if(d instanceof Date) return d; const t=(''+d).replace('Z',''); return new Date(t); }
   function fmtDate(d){ const dt=parseDate(d); if(isNaN(dt)) return '-'; const dd=dt.toLocaleDateString('pt-BR'); const hh=dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dd+' '+hh; }
   function badgeRisco(txt){ if(txt==='Perfil Conservador') return '<span class="badge risk-cons">Conservador</span>'; if(txt==='Perfil Moderado') return '<span class="badge risk-mod">Moderado</span>'; return '<span class="badge risk-ous">Ousado</span>'; }
   function badgeAtencao(txt){ if(/Alta/i.test(txt)) return '<span class="badge att-al">Alta</span>'; if(/Moderada/i.test(txt)) return '<span class="badge att-md">Moderada</span>'; return '<span class="badge att-bx">Baixa</span>'; }
-  function drawPieRisco(id,c){ const t=Math.max(1,c.cons+c.mod+c.ous); const el=document.getElementById(id); const parts=[{v:c.cons,c:'#22c55e'},{v:c.mod,c:'#f59e0b'},{v:c.ous,c:'#ef4444'}]; let acc=0,ar=[]; parts.forEach(p=>{ const a0=acc/t*2*Math.PI; acc+=p.v; const a1=acc/t*2*Math.PI; const r=42,cx=50,cy=50; const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2); const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2); const large=(a1-a0)>Math.PI?1:0; const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`; ar.push(`<path d="${d}" fill="${p.c}" opacity=".85" stroke="rgba(255,255,255,.08)"/>`); }); const pct=m=>Math.round(m/t*100)||0; el.innerHTML=`<g>${ar.join('')}</g><text x='50' y='48' text-anchor='middle' font-size='10' fill='#cbd6ee'>Conservador</text><text x='50' y='60' text-anchor='middle' font-size='12' fill='#eaf1ff' font-weight='700'>${pct(c.cons)}%</text>`; }
-  function drawBarAtencao(id,c){ const el=document.getElementById(id); const maxv=Math.max(c.alta,c.moderada,c.baixa,1); const bars=[{x:15,w:20,v:c.baixa,c:'#ef4444',t:'Baixa'},{x:40,w:20,v:c.moderada,c:'#f59e0b',t:'Moderada'},{x:65,w:20,v:c.alta,c:'#22c55e',t:'Alta'}]; const rects=bars.map(b=>{ const h=70*(b.v/maxv); const y=85-h; return `<rect x='${b.x}' y='${y}' width='${b.w}' height='${h}' fill='${b.c}' rx='4'/><text x='${b.x+b.w/2}' y='80' text-anchor='middle' font-size='10' fill='#cbd6ee'>${b.t}</text><text x='${b.x+b.w/2}' y='${y-4}' text-anchor='middle' font-size='11' fill='#eaf1ff' font-weight='700'>${b.v}</text>`; }).join(''); el.innerHTML=`<rect x='8' y='10' width='84' height='80' fill='none' stroke='rgba(255,255,255,.12)'/>${rects}`; }
-  function sortRows(rows, mode){ const byMedia=(a,b)=> (Number(a.MediaGeral||999) - Number(b.MediaGeral||999)); const byDate=(a,b)=> (new Date(a.DataHora) - new Date(b.DataHora)); if(mode==='media_asc') return rows.sort(byMedia); if(mode==='media_desc') return rows.sort((a,b)=>-byMedia(a,b)); if(mode==='data_asc') return rows.sort(byDate); if(mode==='data_desc') return rows.sort((a,b)=>-byDate(a,b)); return rows; }
+
+  function drawPieRisco(id, counts){
+    const total = Math.max(1, counts.cons+counts.mod+counts.ous);
+    const el = document.getElementById(id);
+    const parts = [ {v:counts.cons,c:'#22c55e'}, {v:counts.mod,c:'#f59e0b'}, {v:counts.ous,c:'#ef4444'} ];
+    let acc=0, arcs=[];
+    parts.forEach(p=>{ const a0=acc/total*2*Math.PI; acc+=p.v; const a1=acc/total*2*Math.PI; const r=42,cx=50,cy=50; const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2); const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2); const large=(a1-a0)>Math.PI?1:0; const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`; arcs.push(`<path d="${d}" fill="${p.c}" opacity=".85" stroke="rgba(255,255,255,.08)"/>`); });
+    const pct = m => Math.round(m/total*100)||0;
+    el.innerHTML = `<g>${arcs.join('')}</g>
+      <text x="50" y="48" text-anchor="middle" font-size="10" fill="#cbd6ee">Conservador</text>
+      <text x="50" y="60" text-anchor="middle" font-size="12" fill="#eaf1ff" font-weight="700">${pct(counts.cons)}%</text>`;
+  }
+
+  function drawBarAtencao(id, counts){
+    const el = document.getElementById(id);
+    const maxv = Math.max(counts.alta,counts.moderada,counts.baixa,1);
+    const bars = [
+      {x:15,w:20,v:counts.baixa,c:'#ef4444',t:'Baixa'},
+      {x:40,w:20,v:counts.moderada,c:'#f59e0b',t:'Moderada'},
+      {x:65,w:20,v:counts.alta,c:'#22c55e',t:'Alta'}
+    ];
+    const rects = bars.map(b=>{ const h=70*(b.v/maxv); const y=85-h; return `<rect x="${b.x}" y="${y}" width="${b.w}" height="${h}" fill="${b.c}" rx="4"/>
+              <text x="${b.x+b.w/2}" y="80" text-anchor="middle" font-size="10" fill="#cbd6ee">${b.t}</text>
+              <text x="${b.x+b.w/2}" y="${y-4}" text-anchor="middle" font-size="11" fill="#eaf1ff" font-weight="700">${b.v}</text>`; }).join('');
+    el.innerHTML = `<rect x="8" y="10" width="84" height="80" fill="none" stroke="rgba(255,255,255,.12)"/>${rects}`;
+  }
+
+  function sortRows(rows, mode){
+    const byMedia = (a,b)=> (Number(a.MediaGeral||999) - Number(b.MediaGeral||999));
+    const byDate  = (a,b)=> (new Date(a.DataHora) - new Date(b.DataHora));
+    if(mode==='media_asc') return rows.sort(byMedia);
+    if(mode==='media_desc') return rows.sort((a,b)=>-byMedia(a,b));
+    if(mode==='data_asc') return rows.sort(byDate);
+    if(mode==='data_desc') return rows.sort((a,b)=>-byDate(a,b));
+    return rows;
+  }
 
   // ===== JSONP loader (sem CORS)
   function jsonp(url){
@@ -160,43 +173,70 @@
   }
 
   async function load(){
-    const base = urlInput.value.trim();
+    const base = ENDPOINT + '?action=list';
     status.textContent = 'Atualizando…';
     try{
-      const data = await jsonp(base); // espera {status:'OK', rows:[...]}
+      const data = await jsonp(base);
       if(!data || data.status!=='OK') throw new Error('Formato inválido');
       render(data.rows||[]);
       status.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
     }catch(e){
-      status.textContent = 'Falha ao atualizar (verifique publicação do Apps Script)';
+      status.textContent = 'Falha ao atualizar';
     }
   }
 
   function render(rows){
-    const fil = filtroSel.value; let arr = rows.slice(0,50).filter(r=> !fil || r.PerfilRisco===fil); arr = sortRows(arr, orderSel.value);
+    // ordena e exibe
+    const arr = sortRows(rows.slice(0,50), ORDER_MODE);
     tbody.innerHTML = '';
     arr.forEach((r,i)=>{
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style='width:40px'>${i+1}</td><td>${r.Nome||'-'}</td><td><b>${Number(r.MediaGeral||0).toFixed(2)}</b></td><td>${badgeRisco(r.PerfilRisco||'')}</td><td>${badgeAtencao(r.PerfilAtencao||'')}</td><td class='small'>${fmtDate(r.DataHora)}</td>`;
+      tr.innerHTML = `<td style="width:40px">${i+1}</td>
+        <td>${r.Nome||'-'}</td>
+        <td><b>${Number(r.MediaGeral||0).toFixed(2)}</b></td>
+        <td>${badgeRisco(r.PerfilRisco||'')}</td>
+        <td>${badgeAtencao(r.PerfilAtencao||'')}</td>
+        <td class="small">${fmtDate(r.DataHora)}</td>`;
       tbody.appendChild(tr);
     });
-    const n = arr.length; const avg = n? (arr.reduce((s,r)=>s+Number(r.MediaGeral||0),0)/n) : 0; const cons = arr.filter(r=>r.PerfilRisco==='Perfil Conservador').length; const mod = arr.filter(r=>r.PerfilRisco==='Perfil Moderado').length; const ous = arr.filter(r=>r.PerfilRisco==='Perfil Ousado').length; const attA = arr.filter(r=>/Alta/i.test(r.PerfilAtencao||'')).length; const attM = arr.filter(r=>/Moderada/i.test(r.PerfilAtencao||'')).length; const attB = arr.filter(r=>/Baixa/i.test(r.PerfilAtencao||'')).length;
-    k_total.textContent = n; k_media.textContent = avg.toFixed(2); k_cons.textContent = Math.round(100*cons/Math.max(1,n)); k_ous.textContent = Math.round(100*ous/Math.max(1,n));
-    drawPieRisco('pieRisco', {cons,mod,ous}); drawBarAtencao('barAtencao', {alta:attA, moderada:attM, baixa:attB});
+
+    // KPIs & gráficos (com base nos exibidos)
+    const n = arr.length;
+    const avg = n? (arr.reduce((s,r)=>s+Number(r.MediaGeral||0),0)/n) : 0;
+    const cons = arr.filter(r=>r.PerfilRisco==='Perfil Conservador').length;
+    const mod  = arr.filter(r=>r.PerfilRisco==='Perfil Moderado').length;
+    const ous  = arr.filter(r=>r.PerfilRisco==='Perfil Ousado').length;
+    const attA = arr.filter(r=>/Alta/i.test(r.PerfilAtencao||'')).length;
+    const attM = arr.filter(r=>/Moderada/i.test(r.PerfilAtencao||'')).length;
+    const attB = arr.filter(r=>/Baixa/i.test(r.PerfilAtencao||'')).length;
+
+    k_total.textContent = n;
+    k_media.textContent = avg.toFixed(2);
+    k_cons.textContent  = Math.round(100*cons/Math.max(1,n));
+    k_ous.textContent   = Math.round(100*ous/Math.max(1,n));
+
+    drawPieRisco('pieRisco', {cons,mod,ous});
+    drawBarAtencao('barAtencao', {alta:attA, moderada:attM, baixa:attB});
   }
 
-  function toggleAuto(){
-    const on = btnAuto.getAttribute('data-on')==='1';
-    if(on){ btnAuto.textContent='Auto: desligado'; btnAuto.setAttribute('data-on','0'); clearInterval(timer); timer=0; }
-    else{ btnAuto.textContent='Auto: ligado'; btnAuto.setAttribute('data-on','1'); clearInterval(timer); timer=setInterval(load, 15000); load(); }
+  function start(){
+    clearInterval(timer); timer = setInterval(load, REFRESH_MS); load();
   }
 
-  btnAtualizar.addEventListener('click', load);
-  btnAuto.addEventListener('click', toggleAuto);
-  orderSel.addEventListener('change', load);
-  filtroSel.addEventListener('change', load);
+  // ===== Fullscreen helpers
+  function toggleFull(){
+    if(document.fullscreenElement){ document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }
+  }
 
-  toggleAuto(); // liga auto e carrega
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='f' || e.key==='F') toggleFull();
+    if(e.key==='r' || e.key==='R') load();
+  });
+  document.addEventListener('dblclick', toggleFull);
+
+  // init
+  start();
 })();
 </script>
 </body>
