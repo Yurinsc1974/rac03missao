@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Ranking - Missão RAC 03</title>
+  <style>
+    body{ font-family:Arial, sans-serif; max-width:1000px; margin:40px auto; padding:0 16px; color:#222; }
+    h1{ margin:0 0 12px 0; }
+    .controls{ display:flex; gap:10px; margin:12px 0 20px; flex-wrap:wrap; }
+    input[type="text"]{ padding:8px 10px; font-size:14px; min-width:240px; }
+    button{ background:#007bff; color:#fff; border:none; padding:10px 16px; font-size:14px; border-radius:6px; cursor:pointer; }
+    table{ border-collapse:collapse; width:100%; }
+    th, td{ border:1px solid #e5e7eb; padding:8px; text-align:left; font-size:14px; }
+    th{ background:#f4f7fa; }
+    .muted{ color:#6b7280; font-size:12px; }
+    .right{ text-align:right; }
+  </style>
+</head>
+<body>
+  <h1>Ranking - Missão RAC 03</h1>
+  <div class="muted">Ordenado por menor <b>Média Geral</b> (melhor desempenho aparece primeiro).</div>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="Filtrar por nome..." />
+    <button id="refreshBtn">Atualizar</button>
+  </div>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th class="right">Média Geral</th>
+        <th>Perfil de Risco</th>
+        <th>Perfil de Atenção</th>
+        <th class="right">Média Técnica</th>
+        <th class="right">Média Comport.</th>
+        <th class="right">Índice Comb.</th>
+        <th>Versão</th>
+        <th>Origem</th>
+        <th>Data/Hora</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+  (function(){
+    const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxuUxkq859eZTOUN7Etoyk29JyHgQMVSVsuEhLECK3YpYYgaqsi09coqvz9_x1SK0UJ9A/exec';
+    const tbody = document.querySelector('#tbl tbody');
+    const search = document.getElementById('search');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    let rows = [];
+
+    function fmt(n){ return (n===null || n===undefined || n==='') ? '' : Number(n).toFixed(2); }
+    function fmtDate(v){
+      try{ const d = new Date(v); if(!isNaN(d)) return d.toLocaleString(); }catch(_){}
+      return String(v||'');
+    }
+
+    function render(){
+      const q = (search.value||'').toLowerCase();
+      const data = rows.filter(r => !q || String(r.Nome||'').toLowerCase().includes(q));
+      tbody.innerHTML = '';
+      data.forEach((r,i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${r.Nome||''}</td>
+          <td class="right">${fmt(r.MediaGeral)}</td>
+          <td>${r.PerfilRisco||''}</td>
+          <td>${r.PerfilAtencao||''}</td>
+          <td class="right">${fmt(r.MediaTecnica)}</td>
+          <td class="right">${fmt(r.MediaComportamental)}</td>
+          <td class="right">${fmt(r.IndiceCombinado)}</td>
+          <td>${r.VersaoForm||''}</td>
+          <td>${r.Origem||''}</td>
+          <td>${fmtDate(r.DataHora)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function load(){
+      fetch(ENDPOINT_URL + '?action=list')
+        .then(r => r.json())
+        .then(j => {
+          if(j && j.status === 'OK' && Array.isArray(j.rows)){
+            rows = j.rows.map(o => o); // já vem top 50 e ordenado do backend
+            render();
+          } else {
+            rows = [];
+            render();
+          }
+        })
+        .catch(err => {
+          console.error('Falha ao carregar ranking:', err);
+          rows = [];
+          render();
+        });
+    }
+
+    search.addEventListener('input', render);
+    refreshBtn.addEventListener('click', load);
+
+    load();
+  })();
+  </script>
+</body>
+</html>
