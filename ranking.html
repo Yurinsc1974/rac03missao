@@ -19,7 +19,6 @@
 </head>
 <body>
   <h1>Ranking - Missão RAC 03</h1>
-  <!-- ⭐ NOVO: Ajuste do texto descritivo -->
   <div class="muted">Ordenado por <b>maior Média Geral</b> (melhor desempenho aparece primeiro).</div>
 
   <div class="controls">
@@ -55,8 +54,31 @@
 
     let rows = [];
 
-    function toNumberSafe(v){
-      const n = Number(v);
+    // --- Parse robusto: aceita 2,63 | 2.63 | 1.234,56 | 1,234.56
+    function parseNum(v){
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      let s = String(v).trim();
+      if (s === '') return null;
+
+      // remove espaços
+      s = s.replace(/\s/g, '');
+
+      // se tem vírgula e ponto, decide quem é separador decimal pelo último símbolo
+      if (s.includes(',') && s.includes('.')) {
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+          // vírgula é decimal => remove pontos (milhar) e troca vírgula por ponto
+          s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+          // ponto é decimal => remove vírgulas (milhar)
+          s = s.replace(/,/g, '');
+        }
+      } else if (s.includes(',')) {
+        // só vírgula => vírgula decimal
+        s = s.replace(',', '.');
+      } // se só ponto, mantém
+
+      const n = Number(s);
       return Number.isFinite(n) ? n : null;
     }
 
@@ -66,21 +88,76 @@
       return String(v||'');
     }
 
+    // comparadores auxiliares
+    function descBy(objA, objB, key){
+      const a = parseNum(objA[key]);
+      const b = parseNum(objB[key]);
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;   // nulos ao fim
+      if (b === null) return -1;
+      return b - a; // descendente
+    }
+
+    function dateDesc(a, b, key){
+      const da = new Date(a[key]);
+      const db = new Date(b[key]);
+      const va = isNaN(da) ? null : da.getTime();
+      const vb = isNaN(db) ? null : db.getTime();
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return vb - va; // mais recente primeiro
+    }
+
+    function sortRanking(arr){
+      // retorna uma cópia ordenada (não muta rows original)
+      return arr.slice().sort((a, b) => {
+        let d = descBy(a, b, 'MediaGeral');
+        if (d) return d;
+        d = descBy(a, b, 'MediaTecnica');
+        if (d) return d;
+        d = descBy(a, b, 'MediaComportamental');
+        if (d) return d;
+        d = descBy(a, b, 'IndiceCombinado');
+        if (d) return d;
+        d = dateDesc(a, b, 'DataHora');
+        if (d) return d;
+        return String(a.Nome||'').localeCompare(String(b.Nome||''), 'pt-BR', { sensitivity: 'base' });
+      });
+    }
+
     function render(){
       const q = (search.value||'').toLowerCase();
-      const data = rows.filter(r => !q || String(r.Nome||'').toLowerCase().includes(q));
+      const filtered = rows.filter(r => !q || String(r.Nome||'').toLowerCase().includes(q));
+
+      // ✅ garantir ordenação sempre na renderização
+      const data = sortRanking(filtered);
+
+      // DEBUG: ver top 10 no console
+      try {
+        console.clear();
+        console.table(data.slice(0,10).map(x => ({
+          Nome: x.Nome,
+          MediaGeral: parseNum(x.MediaGeral),
+          MediaTecnica: parseNum(x.MediaTecnica),
+          MediaComportamental: parseNum(x.MediaComportamental),
+          IndiceCombinado: parseNum(x.IndiceCombinado),
+          DataHora: x.DataHora
+        })));
+      } catch(_) {}
+
       tbody.innerHTML = '';
       data.forEach((r,i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${i+1}</td>
           <td>${r.Nome||''}</td>
-          <td class="right">${fmt(r.MediaGeral)}</td>
+          <td class="right">${fmt(parseNum(r.MediaGeral))}</td>
           <td>${r.PerfilRisco||''}</td>
           <td>${r.PerfilAtencao||''}</td>
-          <td class="right">${fmt(r.MediaTecnica)}</td>
-          <td class="right">${fmt(r.MediaComportamental)}</td>
-          <td class="right">${fmt(r.IndiceCombinado)}</td>
+          <td class="right">${fmt(parseNum(r.MediaTecnica))}</td>
+          <td class="right">${fmt(parseNum(r.MediaComportamental))}</td>
+          <td class="right">${fmt(parseNum(r.IndiceCombinado))}</td>
           <td>${r.VersaoForm||''}</td>
           <td>${r.Origem||''}</td>
           <td>${fmtDate(r.DataHora)}</td>
@@ -89,30 +166,17 @@
       });
     }
 
-    function sortDescByMediaGeral(arr){
-      // ⭐ NOVO: Ordenar por Média Geral (maior -> menor), nulos por último.
-      return arr.sort((a, b) => {
-        const na = toNumberSafe(a.MediaGeral);
-        const nb = toNumberSafe(b.MediaGeral);
-        if (na === null && nb === null) return 0;
-        if (na === null) return 1;   // nulos vão para o fim
-        if (nb === null) return -1;
-        return nb - na; // descendente
-      });
-    }
-
     function load(){
       fetch(ENDPOINT_URL + '?action=list')
         .then(r => r.json())
         .then(j => {
           if(j && j.status === 'OK' && Array.isArray(j.rows)){
-            // já vem top 50 do backend; garantimos a ordenação correta no front
-            rows = sortDescByMediaGeral(j.rows.map(o => o)); // ⭐ NOVO
-            render();
+            // guarda como veio; a ordenação acontece no render()
+            rows = j.rows;
           } else {
             rows = [];
-            render();
           }
+          render();
         })
         .catch(err => {
           console.error('Falha ao carregar ranking:', err);
@@ -123,10 +187,8 @@
 
     search.addEventListener('input', render);
     refreshBtn.addEventListener('click', load);
-
     load();
   })();
   </script>
 </body>
 </html>
-
