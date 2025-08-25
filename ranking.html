@@ -19,7 +19,8 @@
 </head>
 <body>
   <h1>Ranking - Missão RAC 03</h1>
-  <div class="muted">Ordenado por menor <b>Média Geral</b> (melhor desempenho aparece primeiro).</div>
+  <!-- ⭐ NOVO: Ajuste do texto descritivo -->
+  <div class="muted">Ordenado por <b>maior Média Geral</b> (melhor desempenho aparece primeiro).</div>
 
   <div class="controls">
     <input id="search" type="text" placeholder="Filtrar por nome..." />
@@ -54,6 +55,11 @@
 
     let rows = [];
 
+    function toNumberSafe(v){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
     function fmt(n){ return (n===null || n===undefined || n==='') ? '' : Number(n).toFixed(2); }
     function fmtDate(v){
       try{ const d = new Date(v); if(!isNaN(d)) return d.toLocaleString(); }catch(_){}
@@ -83,12 +89,25 @@
       });
     }
 
+    function sortDescByMediaGeral(arr){
+      // ⭐ NOVO: Ordenar por Média Geral (maior -> menor), nulos por último.
+      return arr.sort((a, b) => {
+        const na = toNumberSafe(a.MediaGeral);
+        const nb = toNumberSafe(b.MediaGeral);
+        if (na === null && nb === null) return 0;
+        if (na === null) return 1;   // nulos vão para o fim
+        if (nb === null) return -1;
+        return nb - na; // descendente
+      });
+    }
+
     function load(){
       fetch(ENDPOINT_URL + '?action=list')
         .then(r => r.json())
         .then(j => {
           if(j && j.status === 'OK' && Array.isArray(j.rows)){
-            rows = j.rows.map(o => o); // já vem top 50 e ordenado do backend
+            // já vem top 50 do backend; garantimos a ordenação correta no front
+            rows = sortDescByMediaGeral(j.rows.map(o => o)); // ⭐ NOVO
             render();
           } else {
             rows = [];
