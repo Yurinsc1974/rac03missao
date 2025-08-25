@@ -1,14 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Painel RAC 03 – Ranking ao vivo (Full-Width FIX Alta)</title>
+  <title>Painel RAC 03 – Ranking ao vivo</title>
   <style>
     :root{ --bg:#0b1220; --card:#111a2b; --panel:#0e1628; --muted:#a4b1cd; --text:#eaf1ff; --accent:#4f9cff; --accent2:#22d3ee; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box} html,body{height:100%}
     body{margin:0; font:400 16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans',sans-serif; color:var(--text); background:radial-gradient(1200px 800px at 10% -10%, #173057 0%, #0b1220 50%, #090f1a 100%);}
     .wrap{width:100%; max-width:1400px; margin:0 auto; padding:16px 18px 22px; height:100%; display:flex; flex-direction:column; gap:12px}
     header{display:flex; align-items:center; justify-content:space-between; gap:14px}
@@ -41,11 +39,9 @@
     .delta.up{background:rgba(34,197,94,.15); color:#86efac}
     .delta.down{background:rgba(239,68,68,.15); color:#fca5a5}
     .delta.zero{background:rgba(255,255,255,.08); color:#cbd6ee}
-
     .charts{display:flex; flex-direction:column; gap:16px; flex:1; min-height:0}
     .viz{display:block; width:100%; height:calc(50vh - 120px)}
     @media (max-width: 980px){ .grid{grid-template-columns:1fr} .viz{height:260px} }
-
     .body{flex:1; min-height:0; overflow:auto}
     .controls{display:flex; gap:8px; align-items:center; margin-bottom:8px}
     .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#eaf1ff; border-radius:8px; padding:6px 10px; font-weight:600; cursor:pointer}
@@ -58,8 +54,7 @@
   <div class="wrap">
     <header>
       <div class="brand-title">
-        <img class="brand" alt="Marca" src="https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg" onerror="this.style.display='none'">
-        <h1>Painel RAC 03 – Ranking ao vivo</h1>
+        <img class="brand" alt="Marca" src="https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg"ao vivo</h1>
       </div>
       <div class="status" id="status">—</div>
     </header>
@@ -104,190 +99,269 @@
       </div>
     </div>
   </div>
+
   <div class="hint">Dê <kbd>F</kbd> para tela cheia · <kbd>R</kbd> para atualizar</div>
 
-<script>
-(function(){
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbyxmt_ERuldGmdP8lZjMhMiWua71Ixah_vWgGFAA4IVcb5D_uqGZC-C_ex-SqA9uVnMBg/exec';
-  const REFRESH_MS = 15000;
-  let ORDER_MODE = 'media_desc';
-  const ANIM_MS = 700;
+  <script>
+  (function(){
+    // >>>>>>> ATUALIZEI O ENDPOINT PARA SUA IMPLANTAÇÃO ATUAL <<<<<<<
+    const ENDPOINT = 'https://script.google.com/macros/s/AKfycbyxmt_ERuldGmdP8lZjMhMiWua71Ixah_vWgGFAA4IVcb5D_uqGZC-C_ex-SqA9uVnMBg/exec';
+    const REFRESH_MS = 15000;
+    let ORDER_MODE = 'media_desc';
+    const ANIM_MS = 700;
 
-  const status = document.getElementById('status');
-  const tbody = document.getElementById('tbody');
-  const k_total = document.getElementById('k_total');
-  const k_media = document.getElementById('k_media');
-  const k_cons = document.getElementById('k_cons');
-  const k_ous = document.getElementById('k_ous');
-  const d_total = document.getElementById('d_total');
-  const d_media = document.getElementById('d_media');
-  const d_cons  = document.getElementById('d_cons');
-  const d_ous   = document.getElementById('d_ous');
-  const dataInfo = document.getElementById('dataInfo');
-  const btnOrderScore = document.getElementById('btnOrderScore');
-  const btnOrderDate = document.getElementById('btnOrderDate');
+    const status = document.getElementById('status');
+    const tbody = document.getElementById('tbody');
+    const k_total = document.getElementById('k_total');
+    const k_media = document.getElementById('k_media');
+    const k_cons = document.getElementById('k_cons');
+    const k_ous  = document.getElementById('k_ous');
+    const d_total= document.getElementById('d_total');
+    const d_media= document.getElementById('d_media');
+    const d_cons = document.getElementById('d_cons');
+    const d_ous  = document.getElementById('d_ous');
+    const dataInfo = document.getElementById('dataInfo');
+    const btnOrderScore = document.getElementById('btnOrderScore');
+    const btnOrderDate  = document.getElementById('btnOrderDate');
+    const pieSvg = document.getElementById('pieRisco');
+    const barSvg = document.getElementById('barAtencao');
+    const chartsWrap = document.getElementById('chartsWrap');
+    let timer = 0, cache = null, prevMetrics = null, curMetrics = null;
 
-  const pieSvg = document.getElementById('pieRisco');
-  const barSvg = document.getElementById('barAtencao');
-  const chartsWrap = document.getElementById('chartsWrap');
+    // Utils
+    const clamp=(v,a,b)=> Math.min(b, Math.max(a,v));
+    function parseDate(d){ if(d instanceof Date) return d; const t=(''+d).replace('Z',''); const dt = new Date(t); return dt; }
+    function fmtDate(d){ const dt = parseDate(d); if(isNaN(dt)) return '-'; const dd = dt.toLocaleDateString('pt-BR'); const hh = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dd+' '+hh; }
+    function badgeRisco(txt){ const s=(txt||'').toLowerCase(); if(s.includes('conservador')) return '<span class="badge risk-cons">Conservador</span>'; if(s.includes('moderado')) return '<span class="badge risk-mod">Moderado</span>'; return '<span class="badge risk-ous">Ousado</span>'; }
+    function badgeAtencao(txt){ const s=(txt||'').toLowerCase(); if(s.includes('alta')) return '<span class="badge att-al">Alta</span>'; if(s.includes('modera')) return '<span class="badge att-md">Moderada</span>'; return '<span class="badge att-bx">Baixa</span>'; }
+    function num(v){
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      let s = String(v).trim(); if (s === '') return null; s = s.replace(/\s/g,'');
+      if (s.includes(',') && s.includes('.')){
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')){ s = s.replace(/\./g,'').replace(',', '.'); }
+        else { s = s.replace(/,/g, ''); }
+      } else if (s.includes(',')) { s = s.replace(',', '.'); }
+      const n = Number(s); return Number.isFinite(n) ? n : null;
+    }
+    // Converte o valor bruto para % exibível:
+    // - 0..1 → *100
+    // - 0..5 → (v/5)*100   (compatível com a nova MédiaGeral 0..5)
+    // - 0..100 → %
+    function toPercent(v){ if(v==null) return null; if(v<=1) return v*100; if(v<=5) return (v/5)*100; if(v<=100) return v; return 100; }
 
-  let timer = 0, cache = null, prevMetrics = null, curMetrics = null;
+    function normalizeRow(r){
+      const nome = r.Nome || r.nome || r.participante || '-';
+      let mediaRaw = num(r.MediaGeral ?? r.mediaGeral ?? r.media ?? r['acerto_%'] ?? r.AcertoPct);
+      if (mediaRaw === null && r.Acertos!=null && r.Total!=null){
+        const a = num(r.Acertos), t = num(r.Total); if(a!=null && t!=null && t>0) mediaRaw = a/t;
+      }
+      const media = toPercent(mediaRaw);
 
-  // Utils
-  const clamp=(v,a,b)=> Math.min(b, Math.max(a,v));
-  function parseDate(d){ if(d instanceof Date) return d; const t=(''+d).replace('Z',''); const dt = new Date(t); return dt; }
-  function fmtDate(d){ const dt = parseDate(d); if(isNaN(dt)) return '-'; const dd = dt.toLocaleDateString('pt-BR'); const hh = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dd+' '+hh; }
-  function badgeRisco(txt){ const s=(txt||'').toLowerCase(); if(s.includes('conservador')) return '<span class="badge risk-cons">Conservador</span>'; if(s.includes('moderado')) return '<span class="badge risk-mod">Moderado</span>'; return '<span class="badge risk-ous">Ousado</span>'; }
-  function badgeAtencao(txt){ const s=(txt||'').toLowerCase(); if(s.includes('alta')) return '<span class="badge att-al">Alta</span>'; if(s.includes('modera')) return '<span class="badge att-md">Moderada</span>'; return '<span class="badge att-bx">Baixa</span>'; }
-  function num(v){ if (v === null || v === undefined) return null; if (typeof v === 'number' && Number.isFinite(v)) return v; let s = String(v).trim(); if (s === '') return null; s = s.replace(/\s/g,''); if (s.includes(',') && s.includes('.')){ if (s.lastIndexOf(',') > s.lastIndexOf('.')){ s = s.replace(/\./g,'').replace(',', '.'); } else { s = s.replace(/,/g, ''); } } else if (s.includes(',')) { s = s.replace(',', '.'); } const n = Number(s); return Number.isFinite(n) ? n : null; }
-  function toPercent(v){ if(v==null) return null; if(v<=1) return v*100; if(v<=5) return (v/5)*100; if(v<=100) return v; return 100; }
-  function normalizeRow(r){
-    const nome = r.Nome || r.nome || r.participante || '-';
-    let mediaRaw = num(r.MediaGeral ?? r.mediaGeral ?? r.media ?? r['acerto_%'] ?? r.AcertoPct);
-    if (mediaRaw === null && r.Acertos!=null && r.Total!=null){ const a = num(r.Acertos), t = num(r.Total); if(a!=null && t!=null && t>0) mediaRaw = a/t; }
-    const media = toPercent(mediaRaw);
-    const pr = r.PerfilRisco || r.perfilRisco || r.Perfil || r['Perfil Risco'] || '';
-    const pa = r.PerfilAtencao || r.perfilAtencao || r.AtencaoTexto || r['PerfilAtencao'] || '';
-    const dh = r.DataHora || r.Timestamp || r['Data/Hora'] || r.data || r.horario || null;
-    return { Nome:nome, Media:media, PerfilRisco:pr, PerfilAtencao:pa, DataHora:dh };
-  }
-  function sortRows(rows, mode){ const byMedia=(a,b)=>{ const na=a.Media, nb=b.Media; if(na==null && nb==null) return 0; if(na==null) return 1; if(nb==null) return -1; return na-nb; }; const byDate=(a,b)=> (new Date(a.DataHora)-new Date(b.DataHora)); if(mode==='media_asc') return rows.sort(byMedia); if(mode==='media_desc') return rows.sort((a,b)=> -byMedia(a,b)); if(mode==='data_asc') return rows.sort(byDate); if(mode==='data_desc') return rows.sort((a,b)=> -byDate(a,b)); return rows; }
+      const pr = r.PerfilRisco ?? r.perfilRisco ?? r.Perfil ?? r['Perfil Risco'] ?? '';
+      const pa = r.PerfilAtencao ?? r.perfilAtencao ?? r.AtencaoTexto ?? r['PerfilAtencao'] ?? '';
+      const dh = r.DataHora ?? r.Timestamp ?? r['Data/Hora'] ?? r.data ?? r.horario ?? null;
 
-  // ====== Responsive charts using ResizeObserver ======
-  const ro = new ResizeObserver(()=>{ if(curMetrics) drawCharts(curMetrics, prevMetrics); });
-  ro.observe(chartsWrap);
-
-  function drawCharts(cur, prev){
-    const pieRect = pieSvg.getBoundingClientRect();
-    const barRect = barSvg.getBoundingClientRect();
-    const pw = Math.max(300, Math.floor(pieRect.width));
-    const ph = Math.max(240, Math.floor(pieRect.height));
-    const bw = Math.max(300, Math.floor(barRect.width));
-    const bh = Math.max(240, Math.floor(barRect.height));
-
-    pieSvg.setAttribute('viewBox', `0 0 ${pw} ${ph}`);
-    barSvg.setAttribute('viewBox', `0 0 ${bw} ${bh}`);
-
-    function renderPie(Counts){
-      const total = Math.max(1, Counts.cons+Counts.mod+Counts.ous);
-      const parts = [ {v:Counts.cons,c:'#22c55e',t:'Conservador'}, {v:Counts.mod,c:'#f59e0b',t:'Moderado'}, {v:Counts.ous,c:'#ef4444',t:'Ousado'} ];
-      let acc=0, arcs=[]; const cx=pw/2, cy=ph*0.38, r=Math.min(pw,ph)*0.22;
-      parts.forEach(p=>{ const a0=acc/total*2*Math.PI; acc+=p.v; const a1=acc/total*2*Math.PI; const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2); const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2); const large=(a1-a0)>Math.PI?1:0; const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`; arcs.push(`<path d="${d}" fill="${p.c}" opacity=".92" stroke="rgba(255,255,255,.08)"/>`); });
-      const pct=(m)=> Math.round(m/total*100);
-      const slot = pw/3; const ly = ph*0.80;
-      const legend = parts.map((p,i)=>{ const lx = slot*i + slot*0.15; return `<circle cx="${lx}" cy="${ly}" r="6" fill="${p.c}"/>\n<text x="${lx+14}" y="${ly+4}" font-size="14" fill="#cbd6ee">${p.t} ${pct(p.v)}%</text>`; }).join('');
-      pieSvg.innerHTML = `<g>${arcs.join('')}</g>${legend}`;
+      return { Nome:nome, Media:media, PerfilRisco:pr, PerfilAtencao:pa, DataHora:dh };
     }
 
-    function renderBar(Counts){
-      const total = Math.max(1, Counts.alta+Counts.moderada+Counts.baixa);
-      const maxv = Math.max(Counts.alta,Counts.moderada,Counts.baixa,1);
-      const margin = {l: Math.max(24, bw*0.06), r: Math.max(24, bw*0.06), t: Math.max(24, bh*0.08), b: Math.max(28, bh*0.16)};
-      const plotW = bw - margin.l - margin.r;
-      const plotH = bh - margin.t - margin.b;
-      const bars = [ {key:'Baixa',v:Counts.baixa,c:'#ef4444'}, {key:'Moderada',v:Counts.moderada,c:'#f59e0b'}, {key:'Alta',v:Counts.alta,c:'#22c55e'} ];
-      const bwid = Math.min(80, plotW/5);
-      const gap  = (plotW - 3*bwid) / 4; // CORREÇÃO: 4 gaps (esq, 2 internos, dir)
-      let x = margin.l + gap;
-      const items = bars.map(b=>{ const h = plotH*(b.v/maxv); const y = margin.t + (plotH - h); const pct = Math.round(100*b.v/total); const cx = x + bwid/2; const dom = `<rect x="${x}" y="${y}" width="${bwid}" height="${h}" fill="${b.c}" rx="10"/>
-        <text x="${cx}" y="${Math.max(margin.t+16, y-12)}" text-anchor="middle" font-size="18" fill="#eaf1ff" font-weight="800">${Math.round(b.v)} (${pct}%)</text>
-        <text x="${cx}" y="${bh - margin.b/2}" text-anchor="middle" font-size="14" fill="#cbd6ee">${b.key}</text>`; x += bwid + gap; return dom; }).join('');
-      const frame = `<rect x="${margin.l}" y="${margin.t}" width="${plotW}" height="${plotH}" fill="none" stroke="rgba(255,255,255,.12)"/>`;
-      barSvg.innerHTML = frame + items + `<title>Atenção: Baixa/Moderada/Alta</title>`;
+    function sortRows(rows, mode){
+      const byMedia=(a,b)=>{ const na=a.Media, nb=b.Media; if(na==null && nb==null) return 0; if(na==null) return 1; if(nb==null) return -1; return na-nb; };
+      const byDate=(a,b)=> (new Date(a.DataHora)-new Date(b.DataHora));
+      if(mode==='media_asc')  return rows.sort(byMedia);
+      if(mode==='media_desc') return rows.sort((a,b)=> -byMedia(a,b));
+      if(mode==='data_asc')   return rows.sort(byDate);
+      if(mode==='data_desc')  return rows.sort((a,b)=> -byDate(a,b));
+      return rows;
     }
 
-    const p = prev || {cons:0,mod:0,ous:0, attA:0,attM:0,attB:0};
-    const n = cur;
-    const t0 = performance.now();
-    function step(t){
-      const k = clamp((t - t0)/ANIM_MS, 0, 1);
-      const pieNow = { cons: p.cons + (n.cons-p.cons)*k, mod: p.mod + (n.mod-p.mod)*k, ous: p.ous + (n.ous-p.ous)*k };
-      const barNow = { alta: p.attA + (n.attA-p.attA)*k, moderada: p.attM + (n.attM-p.attM)*k, baixa: p.attB + (n.attB-p.attB)*k };
-      renderPie(pieNow); renderBar(barNow);
-      if(k<1) requestAnimationFrame(step);
+    // --------- Gráficos responsivos ---------
+    const ro = new ResizeObserver(()=>{ if(curMetrics) drawCharts(curMetrics, prevMetrics); });
+    ro.observe(chartsWrap);
+
+    function drawCharts(cur, prev){
+      const pieRect = pieSvg.getBoundingClientRect();
+      const barRect = barSvg.getBoundingClientRect();
+      const pw = Math.max(300, Math.floor(pieRect.width));
+      const ph = Math.max(240, Math.floor(pieRect.height));
+      const bw = Math.max(300, Math.floor(barRect.width));
+      const bh = Math.max(240, Math.floor(barRect.height));
+      pieSvg.setAttribute('viewBox', `0 0 ${pw} ${ph}`);
+      barSvg.setAttribute('viewBox', `0 0 ${bw} ${bh}`);
+
+      function renderPie(Counts){
+        const total = Math.max(1, Counts.cons+Counts.mod+Counts.ous);
+        const parts = [
+          {v:Counts.cons,c:'#22c55e',t:'Conservador'},
+          {v:Counts.mod ,c:'#f59e0b',t:'Moderado'},
+          {v:Counts.ous ,c:'#ef4444',t:'Ousado'}
+        ];
+        let acc=0, arcs=[]; const cx=pw/2, cy=ph*0.38, r=Math.min(pw,ph)*0.22;
+        parts.forEach(p=>{
+          const a0=acc/total*2*Math.PI; acc+=p.v; const a1=acc/total*2*Math.PI;
+          const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2);
+          const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2);
+          const large=(a1-a0)>Math.PI?1:0;
+          const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+          arcs.push(`<path d="${d}" fill="${p.c}" opacity=".92" stroke="rgba(255,255,255,.08)"/>`);
+        });
+        const pct=(m)=> Math.round(m/total*100);
+        const slot = pw/3; const ly = ph*0.80;
+        const legend = parts.map((p,i)=>{
+          const lx = slot*i + slot*0.15;
+          return `<circle cx="${lx}" cy="${ly}" r="6" fill="${p.c}"/>
+                  <text x="${lx+14}" y="${ly+4}" font-size="14" fill="#cbd6ee">${p.t} ${pct(p.v)}%</text>`;
+        }).join('');
+        pieSvg.innerHTML = `<g>${arcs.join('')}</g>${legend}`;
+      }
+
+      function renderBar(Counts){
+        const total = Math.max(1, Counts.alta+Counts.moderada+Counts.baixa);
+        const maxv = Math.max(Counts.alta,Counts.moderada,Counts.baixa,1);
+        const margin = {l: Math.max(24, bw*0.06), r: Math.max(24, bw*0.06), t: Math.max(24, bh*0.08), b: Math.max(28, bh*0.16)};
+        const plotW = bw - margin.l - margin.r;
+        const plotH = bh - margin.t - margin.b;
+        const bars = [
+          {key:'Baixa',    v:Counts.baixa,    c:'#ef4444'},
+          {key:'Moderada', v:Counts.moderada, c:'#f59e0b'},
+          {key:'Alta',     v:Counts.alta,     c:'#22c55e'}
+        ];
+        const bwid = Math.min(80, plotW/5);
+        const gap = (plotW - 3*bwid) / 4; // 4 gaps (esq, 2 internos, dir)
+        let x = margin.l + gap;
+        const items = bars.map(b=>{
+          const h = plotH*(b.v/maxv); const y = margin.t + (plotH - h);
+          const pct = Math.round(100*b.v/total); const cx = x + bwid/2;
+          const dom = `<rect x="${x}" y="${y}" width="${bwid}" height="${h}" fill="${b.c}" rx="10"/>
+                       <text x="${cx}" y="${Math.max(margin.t+16, y-12)}" text-anchor="middle" font-size="18" fill="#eaf1ff" font-weight="800">${Math.round(b.v)} (${pct}%)</text>
+                       <text x="${cx}" y="${bh - margin.b/2}" text-anchor="middle" font-size="14" fill="#cbd6ee">${b.key}</text>`;
+          x += bwid + gap; return dom;
+        }).join('');
+        const frame = `<rect x="${margin.l}" y="${margin.t}" width="${plotW}" height="${plotH}" fill="none" stroke="rgba(255,255,255,.12)"/>`;
+        barSvg.innerHTML = frame + items + `<title>Atenção: Baixa/Moderada/Alta</title>`;
+      }
+
+      const p = prev || {cons:0,mod:0,ous:0, attA:0,attM:0,attB:0};
+      const n = cur;
+      const t0 = performance.now();
+      function step(t){
+        const k = clamp((t - t0)/ANIM_MS, 0, 1);
+        const pieNow = { cons: p.cons + (n.cons-p.cons)*k, mod: p.mod + (n.mod-p.mod)*k, ous: p.ous + (n.ous-p.ous)*k };
+        const barNow = { alta: p.attA + (n.attA-p.attA)*k, moderada: p.attM + (n.attM-p.attM)*k, baixa: p.attB + (n.attB-p.attB)*k };
+        renderPie(pieNow); renderBar(barNow);
+        if(k<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
     }
-    requestAnimationFrame(step);
-  }
 
-  function jsonp(url){ return new Promise((resolve,reject)=>{ const cbName='__cb_'+Math.random().toString(36).slice(2); const cleanup=()=>{ delete window[cbName]; if(s&&s.parentNode) s.parentNode.removeChild(s); if(t) clearTimeout(t); }; window[cbName]=(data)=>{ cleanup(); resolve(data); }; const s=document.createElement('script'); s.src=url+(url.includes('?')?'&':'?')+'callback='+cbName+'&ts='+Date.now(); s.onerror=()=>{ cleanup(); reject(new Error('Falha JSONP')); }; document.body.appendChild(s); const t=setTimeout(()=>{ cleanup(); reject(new Error('Timeout JSONP')); },15000); }); }
+    function jsonp(url){
+      return new Promise((resolve,reject)=>{
+        const cbName='__cb_'+Math.random().toString(36).slice(2);
+        const cleanup=()=>{ delete window[cbName]; if(s&&s.parentNode) s.parentNode.removeChild(s); if(t) clearTimeout(t); };
+        window[cbName]=(data)=>{ cleanup(); resolve(data); };
+        const s=document.createElement('script');
+        s.src=url+(url.includes('?')?'&':'?')+'callback='+cbName+'&ts='+Date.now();
+        s.onerror=()=>{ cleanup(); reject(new Error('Falha JSONP')); };
+        document.body.appendChild(s);
+        const t=setTimeout(()=>{ cleanup(); reject(new Error('Timeout JSONP')); },15000);
+      });
+    }
 
-  async function load(){
-    status.textContent = 'Atualizando…';
-    try{
-      const data = await jsonp(ENDPOINT+'?action=list');
-      if(!data || data.status!=='OK') throw new Error('Formato inválido');
-      const rows = (data.rows||[]).map(normalizeRow);
-      cache = rows;
-      render(rows);
-      status.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
-      dataInfo.textContent = rows.length + ' registros';
-    }catch(e){ status.textContent = 'Falha ao atualizar'; if(cache) render(cache); }
-  }
+    async function load(){
+      status.textContent = 'Atualizando…';
+      try{
+        const data = await jsonp(ENDPOINT+'?action=list');
+        if(!data || data.status!=='OK') throw new Error('Formato inválido');
+        const rows = (data.rows||[]).map(normalizeRow);
+        cache = rows;
+        render(rows);
+        status.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+        dataInfo.textContent = rows.length + ' registros';
+      }catch(e){
+        status.textContent = 'Falha ao atualizar';
+        if(cache) render(cache);
+      }
+    }
 
-  function computeMetrics(arr){
-    const n = arr.length;
-    const avg = n ? (arr.reduce((s,r)=> s + (r.Media ?? 0), 0) / n) : 0;
-    const cons = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('conservador')).length;
-    const mod  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('moderado')).length;
-    const ous  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('ousado')).length;
-    const attA = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('alta')).length;
-    const attM = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('modera')).length;
-    const attB = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('baixa')).length;
-    return { n, avg, cons, mod, ous, attA, attM, attB };
-  }
+    function computeMetrics(arr){
+      const n = arr.length;
+      const avg = n ? (arr.reduce((s,r)=> s + (r.Media ?? 0), 0) / n) : 0; // % 0..100
+      const cons = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('conservador')).length;
+      const mod  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('moderado')).length;
+      const ous  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('ousado')).length;
+      const attA = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('alta')).length;
+      const attM = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('modera')).length;
+      const attB = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('baixa')).length;
+      return { n, avg, cons, mod, ous, attA, attM, attB };
+    }
 
-  function animateNumber(el, fromV, toV, suffix=''){ const t0=performance.now(); function frame(t){ const k = Math.min(1, (t-t0)/ANIM_MS); const v = fromV + (toV-fromV)*k; el.textContent = suffix==='%'? Math.round(v)+suffix : (Math.round(v*10)/10)+(suffix||''); if(k<1) requestAnimationFrame(frame); } requestAnimationFrame(frame); }
-  function setDelta(el, oldV, newV, asPercent=false){ if(oldV==null){ el.textContent='—'; el.className='delta zero'; return; } const d = (newV - oldV); const txt = (d>0?'+':'') + (asPercent? Math.round(d) : Math.round(d)) + (asPercent?'%':''); el.textContent = 'Δ ' + txt; el.className = 'delta ' + (d>0?'up': d<0?'down':'zero'); }
+    function animateNumber(el, fromV, toV, suffix=''){
+      const t0=performance.now();
+      function frame(t){
+        const k = Math.min(1, (t-t0)/ANIM_MS);
+        const v = fromV + (toV-fromV)*k;
+        el.textContent = suffix==='%'? Math.round(v)+suffix : (Math.round(v*10)/10)+(suffix||'');
+        if(k<1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
 
-  function render(rows){
-    const arr = sortRows(rows.slice(0,100), ORDER_MODE);
-    tbody.innerHTML = '';
-    arr.forEach((r,i)=>{
-      const m = r.Media;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style=\"width:40px\">${i+1}</td>
-        <td>${r.Nome||'-'}</td>
-        <td><b>${m==null?'-':(Math.round(m)+'%')}</b></td>
-        <td>${badgeRisco(r.PerfilRisco||'')}</td>
-        <td>${badgeAtencao(r.PerfilAtencao||'')}</td>
-        <td class=\"small\">${fmtDate(r.DataHora)}</td>`;
-      tbody.appendChild(tr);
-    });
+    function setDelta(el, oldV, newV, asPercent=false){
+      if(oldV==null){ el.textContent='—'; el.className='delta zero'; return; }
+      const d = (newV - oldV);
+      const txt = (d>0?'+':'') + (asPercent? Math.round(d) : Math.round(d)) + (asPercent?'%':'');
+      el.textContent = 'Δ ' + txt;
+      el.className = 'delta ' + (d>0?'up': d<0?'down':'zero');
+    }
 
-    const cur = computeMetrics(arr); const prev = prevMetrics || null;
-    const v_total = cur.n; const v_media = cur.avg; // % 0..100
-    const v_cons = Math.round(100*cur.cons/Math.max(1,cur.n));
-    const v_ous  = Math.round(100*cur.ous/Math.max(1,cur.n));
-    const p_total = prev? prev.n : v_total;
-    const p_media = prev? prev.avg : v_media;
-    const p_cons  = prev? Math.round(100*prev.cons/Math.max(1,prev.n)) : v_cons;
-    const p_ous   = prev? Math.round(100*prev.ous/Math.max(1,prev.n)) : v_ous;
+    function render(rows){
+      const arr = sortRows(rows.slice(0,100), ORDER_MODE);
+      tbody.innerHTML = '';
+      arr.forEach((r,i)=>{
+        const m = r.Media;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="width:40px">${i+1}</td>
+          <td>${r.Nome||'-'}</td>
+          <td><b>${m==null?'-':(Math.round(m)+'%')}</b></td>
+          <td>${badgeRisco(r.PerfilRisco||'')}</td>
+          <td>${badgeAtencao(r.PerfilAtencao||'')}</td>
+          <td class="small">${fmtDate(r.DataHora)}</td>`;
+        tbody.appendChild(tr);
+      });
 
-    animateNumber(k_total, p_total, v_total, '');
-    animateNumber(k_media, p_media, v_media, '%');
-    animateNumber(k_cons,  p_cons,  v_cons,  '%');
-    animateNumber(k_ous,   p_ous,   v_ous,   '%');
-    setDelta(d_total, prev?prev.n:null, v_total, false);
-    setDelta(d_media, prev?prev.avg:null, v_media, true);
-    setDelta(d_cons,  prev?Math.round(100*prev.cons/Math.max(1,prev.n)):null, v_cons, true);
-    setDelta(d_ous,   prev?Math.round(100*prev.ous/Math.max(1,prev.n)):null, v_ous, true);
+      const cur = computeMetrics(arr); const prev = prevMetrics || null;
+      const v_total = cur.n; const v_media = cur.avg;
+      const v_cons = Math.round(100*cur.cons/Math.max(1,cur.n));
+      const v_ous  = Math.round(100*cur.ous /Math.max(1,cur.n));
 
-    curMetrics = cur; drawCharts(cur, prev); prevMetrics = cur;
-  }
+      const p_total = prev? prev.n   : v_total;
+      const p_media = prev? prev.avg : v_media;
+      const p_cons  = prev? Math.round(100*prev.cons/Math.max(1,prev.n)) : v_cons;
+      const p_ous   = prev? Math.round(100*prev.ous /Math.max(1,prev.n)) : v_ous;
 
-  function start(){ clearInterval(timer); timer = setInterval(load, REFRESH_MS); load(); }
+      animateNumber(k_total, p_total, v_total, '');
+      animateNumber(k_media, p_media, v_media, '%');
+      animateNumber(k_cons , p_cons , v_cons , '%');
+      animateNumber(k_ous  , p_ous  , v_ous  , '%');
 
-  function setOrder(mode){ ORDER_MODE = mode; btnOrderScore.classList.toggle('active', mode==='media_desc'); btnOrderDate.classList.toggle('active', mode!=='media_desc'); if(cache) render(cache); }
-  btnOrderScore.addEventListener('click', ()=> setOrder('media_desc'));
-  btnOrderDate.addEventListener('click', ()=> setOrder('data_desc'));
+      setDelta(d_total, prev?prev.n:null, v_total, false);
+      setDelta(d_media, prev?prev.avg:null, v_media, true);
+      setDelta(d_cons , prev?Math.round(100*prev.cons/Math.max(1,prev.n)):null, v_cons, true);
+      setDelta(d_ous  , prev?Math.round(100*prev.ous /Math.max(1,prev.n)):null, v_ous , true);
 
-  function toggleFull(){ if(document.fullscreenElement){ document.exitFullscreen(); } else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); } }
-  document.addEventListener('keydown', (e)=>{ if(e.key==='f'||e.key==='F') toggleFull(); if(e.key==='r'||e.key==='R') load(); });
-  document.addEventListener('dblclick', toggleFull);
+      curMetrics = cur; drawCharts(cur, prev); prevMetrics = cur;
+    }
 
-  start();
-})();
-</script>
+    function start(){ clearInterval(timer); timer = setInterval(load, REFRESH_MS); load(); }
+    function setOrder(mode){ ORDER_MODE = mode; btnOrderScore.classList.toggle('active', mode==='media_desc'); btnOrderDate.classList.toggle('active', mode!=='media_desc'); if(cache) render(cache); }
+    btnOrderScore.addEventListener('click', ()=> setOrder('media_desc'));
+    btnOrderDate .addEventListener('click', ()=> setOrder('data_desc'));
+    function toggleFull(){ if(document.fullscreenElement){ document.exitFullscreen(); } else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); } }
+    document.addEventListener('keydown', (e)=>{ if(e.key==='f'||e.key==='F') toggleFull(); if(e.key==='r'||e.key==='R') load(); });
+    document.addEventListener('dblclick', toggleFull);
+    start();
+  })();
+  </script>
 </body>
 </html>
