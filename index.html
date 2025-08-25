@@ -1,18 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Painel RAC 03 – Ranking ao vivo</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel RAC 03 – Ranking ao vivo (Full-Width FIX Alta)</title>
   <style>
-    :root{ --bg:#0b1220; --card:#111a2b; --panel:#0e1628; --muted:#a4b1cd; --text:#eaf1ff; --accent:#4f9cff; --accent2:#22d3ee; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; }
+    :root{ --bg:#0b1220; --card:#111a2b; --panel:#0e1628; --muted:#a4b1cd; --text:#eaf1ff; --accent:#4f9cff; --accent2:#22d3ee; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:14px; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0; font:400 16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans',sans-serif; color:var(--text); background:radial-gradient(1200px 800px at 10% -10%, #173057 0%, #0b1220 50%, #090f1a 100%);}
     .wrap{width:100%; max-width:1400px; margin:0 auto; padding:16px 18px 22px; height:100%; display:flex; flex-direction:column; gap:12px}
     header{display:flex; align-items:center; justify-content:space-between; gap:14px}
     .brand-title{display:flex; align-items:center; gap:12px}
-    .brand{height:40px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+    .brand{height:40px; width:auto; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); display:block}
     h1{font-size:22px; margin:0}
     .status{color:#cbd6ee; font-size:13px}
     .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px; flex:1; min-height:0; }
@@ -33,22 +34,31 @@
     .att-al{background:rgba(34,197,94,.15); color:#86efac}
     .small{color:var(--muted); font-size:12px}
     .kpis{display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:10px}
-    .kpi{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px}
+    .kpi{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; position:relative; overflow:hidden}
     .kpi .val{font-size:22px; font-weight:800}
     .kpi .lbl{color:#cbd6ee; font-size:12px}
-    .charts{display:grid; grid-template-columns: 1fr 1fr; gap:10px; min-height:0}
-    .viz{height:220px}
+    .delta{position:absolute; right:10px; top:10px; font-weight:700; font-size:12px; padding:2px 6px; border-radius:999px}
+    .delta.up{background:rgba(34,197,94,.15); color:#86efac}
+    .delta.down{background:rgba(239,68,68,.15); color:#fca5a5}
+    .delta.zero{background:rgba(255,255,255,.08); color:#cbd6ee}
+
+    .charts{display:flex; flex-direction:column; gap:16px; flex:1; min-height:0}
+    .viz{display:block; width:100%; height:calc(50vh - 120px)}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} .viz{height:260px} }
+
     .body{flex:1; min-height:0; overflow:auto}
+    .controls{display:flex; gap:8px; align-items:center; margin-bottom:8px}
+    .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#eaf1ff; border-radius:8px; padding:6px 10px; font-weight:600; cursor:pointer}
+    .btn.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#06101f}
     .hint{position:fixed; right:14px; bottom:10px; color:#94a3b8; font-size:12px; opacity:.5}
     .hint kbd{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-bottom-width:2px; padding:2px 6px; border-radius:6px}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} .charts{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand-title">
-        https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg
+        <img class="brand" alt="Marca" src="https://pt.wikipedia.org/wiki/Special:FilePath/Logotipo_Vale.svg" onerror="this.style.display='none'">
         <h1>Painel RAC 03 – Ranking ao vivo</h1>
       </div>
       <div class="status" id="status">—</div>
@@ -57,6 +67,11 @@
     <div class="grid">
       <div class="panel">
         <h2>Ranking</h2>
+        <div class="controls">
+          <button class="btn active" id="btnOrderScore">Ordenar por Média</button>
+          <button class="btn" id="btnOrderDate">Ordenar por Data/Hora</button>
+          <span class="small" id="dataInfo"></span>
+        </div>
         <div class="body">
           <table>
             <thead>
@@ -74,31 +89,29 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="panelIndicadores">
         <h2>Indicadores</h2>
         <div class="kpis">
-          <div class="kpi"><div class="val" id="k_total">0</div><div class="lbl">Participantes</div></div>
-          <div class="kpi"><div class="val" id="k_media">0.00</div><div class="lbl">Média geral</div></div>
-          <div class="kpi"><div class="val" id="k_cons">0</div><div class="lbl">% Conservador</div></div>
-          <div class="kpi"><div class="val" id="k_ous">0</div><div class="lbl">% Ousado</div></div>
+          <div class="kpi"><div class="val" id="k_total">0</div><div class="lbl">Participantes</div><div class="delta zero" id="d_total">—</div></div>
+          <div class="kpi"><div class="val" id="k_media">0%</div><div class="lbl">Média geral</div><div class="delta zero" id="d_media">—</div></div>
+          <div class="kpi"><div class="val" id="k_cons">0%</div><div class="lbl">% Conservador</div><div class="delta zero" id="d_cons">—</div></div>
+          <div class="kpi"><div class="val" id="k_ous">0%</div><div class="lbl">% Ousado</div><div class="delta zero" id="d_ous">—</div></div>
         </div>
-        <div class="charts">
-          <svg class="viz" viewBox="0 0 100 100" id="pieRisco"></svg>
-          <svg class="viz" viewBox="0 0 100 100" id="barAtencao"></svg>
+        <div class="charts" id="chartsWrap">
+          <svg class="viz" id="pieRisco"></svg>
+          <svg class="viz" id="barAtencao"></svg>
         </div>
       </div>
     </div>
   </div>
-
   <div class="hint">Dê <kbd>F</kbd> para tela cheia · <kbd>R</kbd> para atualizar</div>
 
 <script>
 (function(){
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Spraer70nSqkNFu8BLZUCDhdhaaLqcjnqQ_wnRjpY5qGMY-wakGaU3wthdlp1XmIwg/exec'; // mantido somente no código (não exibido na UI)
-  const REFRESH_MS = 15000; // auto-refresh
-
-  // === NOVO: ordem padrão por maior Média (descendente)
-  const ORDER_MODE = 'media_desc';
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw_Spraer70nSqkNFu8BLZUCDhdhaaLqcjnqQ_wnRjpY5qGMY-wakGaU3wthdlp1XmIwg/exec';
+  const REFRESH_MS = 15000;
+  let ORDER_MODE = 'media_desc';
+  const ANIM_MS = 700;
 
   const status = document.getElementById('status');
   const tbody = document.getElementById('tbody');
@@ -106,169 +119,173 @@
   const k_media = document.getElementById('k_media');
   const k_cons = document.getElementById('k_cons');
   const k_ous = document.getElementById('k_ous');
-  let timer = 0;
+  const d_total = document.getElementById('d_total');
+  const d_media = document.getElementById('d_media');
+  const d_cons  = document.getElementById('d_cons');
+  const d_ous   = document.getElementById('d_ous');
+  const dataInfo = document.getElementById('dataInfo');
+  const btnOrderScore = document.getElementById('btnOrderScore');
+  const btnOrderDate = document.getElementById('btnOrderDate');
 
-  // ===== Utils
-  function parseDate(d){ if(d instanceof Date) return d; const t=(''+d).replace('Z',''); return new Date(t); }
-  function fmtDate(d){ const dt=parseDate(d); if(isNaN(dt)) return '-'; const dd=dt.toLocaleDateString('pt-BR'); const hh=dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dd+' '+hh; }
-  function badgeRisco(txt){ if(txt==='Perfil Conservador') return '<span class="badge risk-cons">Conservador</span>'; if(txt==='Perfil Moderado') return '<span class="badge risk-mod">Moderado</span>'; return '<span class="badge risk-ous">Ousado</span>'; }
-  function badgeAtencao(txt){ if(/Alta/i.test(txt)) return '<span class="badge att-al">Alta</span>'; if(/Moderada/i.test(txt)) return '<span class="badge att-md">Moderada</span>'; return '<span class="badge att-bx">Baixa</span>'; }
+  const pieSvg = document.getElementById('pieRisco');
+  const barSvg = document.getElementById('barAtencao');
+  const chartsWrap = document.getElementById('chartsWrap');
 
-  // === NOVO: parser numérico robusto (aceita 2,63 | 2.63 | 1.234,56 | 1,234.56)
-  function num(v){
-    if (v === null || v === undefined) return null;
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    let s = String(v).trim();
-    if (s === '') return null;
-    s = s.replace(/\s/g,'');
-    if (s.includes(',') && s.includes('.')) {
-      if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
-        s = s.replace(/\./g,'').replace(',', '.'); // vírgula decimal
-      } else {
-        s = s.replace(/,/g, ''); // ponto decimal
-      }
-    } else if (s.includes(',')) {
-      s = s.replace(',', '.'); // vírgula decimal
+  let timer = 0, cache = null, prevMetrics = null, curMetrics = null;
+
+  // Utils
+  const clamp=(v,a,b)=> Math.min(b, Math.max(a,v));
+  function parseDate(d){ if(d instanceof Date) return d; const t=(''+d).replace('Z',''); const dt = new Date(t); return dt; }
+  function fmtDate(d){ const dt = parseDate(d); if(isNaN(dt)) return '-'; const dd = dt.toLocaleDateString('pt-BR'); const hh = dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dd+' '+hh; }
+  function badgeRisco(txt){ const s=(txt||'').toLowerCase(); if(s.includes('conservador')) return '<span class="badge risk-cons">Conservador</span>'; if(s.includes('moderado')) return '<span class="badge risk-mod">Moderado</span>'; return '<span class="badge risk-ous">Ousado</span>'; }
+  function badgeAtencao(txt){ const s=(txt||'').toLowerCase(); if(s.includes('alta')) return '<span class="badge att-al">Alta</span>'; if(s.includes('modera')) return '<span class="badge att-md">Moderada</span>'; return '<span class="badge att-bx">Baixa</span>'; }
+  function num(v){ if (v === null || v === undefined) return null; if (typeof v === 'number' && Number.isFinite(v)) return v; let s = String(v).trim(); if (s === '') return null; s = s.replace(/\s/g,''); if (s.includes(',') && s.includes('.')){ if (s.lastIndexOf(',') > s.lastIndexOf('.')){ s = s.replace(/\./g,'').replace(',', '.'); } else { s = s.replace(/,/g, ''); } } else if (s.includes(',')) { s = s.replace(',', '.'); } const n = Number(s); return Number.isFinite(n) ? n : null; }
+  function toPercent(v){ if(v==null) return null; if(v<=1) return v*100; if(v<=5) return (v/5)*100; if(v<=100) return v; return 100; }
+  function normalizeRow(r){
+    const nome = r.Nome || r.nome || r.participante || '-';
+    let mediaRaw = num(r.MediaGeral ?? r.mediaGeral ?? r.media ?? r['acerto_%'] ?? r.AcertoPct);
+    if (mediaRaw === null && r.Acertos!=null && r.Total!=null){ const a = num(r.Acertos), t = num(r.Total); if(a!=null && t!=null && t>0) mediaRaw = a/t; }
+    const media = toPercent(mediaRaw);
+    const pr = r.PerfilRisco || r.perfilRisco || r.Perfil || r['Perfil Risco'] || '';
+    const pa = r.PerfilAtencao || r.perfilAtencao || r.AtencaoTexto || r['PerfilAtencao'] || '';
+    const dh = r.DataHora || r.Timestamp || r['Data/Hora'] || r.data || r.horario || null;
+    return { Nome:nome, Media:media, PerfilRisco:pr, PerfilAtencao:pa, DataHora:dh };
+  }
+  function sortRows(rows, mode){ const byMedia=(a,b)=>{ const na=a.Media, nb=b.Media; if(na==null && nb==null) return 0; if(na==null) return 1; if(nb==null) return -1; return na-nb; }; const byDate=(a,b)=> (new Date(a.DataHora)-new Date(b.DataHora)); if(mode==='media_asc') return rows.sort(byMedia); if(mode==='media_desc') return rows.sort((a,b)=> -byMedia(a,b)); if(mode==='data_asc') return rows.sort(byDate); if(mode==='data_desc') return rows.sort((a,b)=> -byDate(a,b)); return rows; }
+
+  // ====== Responsive charts using ResizeObserver ======
+  const ro = new ResizeObserver(()=>{ if(curMetrics) drawCharts(curMetrics, prevMetrics); });
+  ro.observe(chartsWrap);
+
+  function drawCharts(cur, prev){
+    const pieRect = pieSvg.getBoundingClientRect();
+    const barRect = barSvg.getBoundingClientRect();
+    const pw = Math.max(300, Math.floor(pieRect.width));
+    const ph = Math.max(240, Math.floor(pieRect.height));
+    const bw = Math.max(300, Math.floor(barRect.width));
+    const bh = Math.max(240, Math.floor(barRect.height));
+
+    pieSvg.setAttribute('viewBox', `0 0 ${pw} ${ph}`);
+    barSvg.setAttribute('viewBox', `0 0 ${bw} ${bh}`);
+
+    function renderPie(Counts){
+      const total = Math.max(1, Counts.cons+Counts.mod+Counts.ous);
+      const parts = [ {v:Counts.cons,c:'#22c55e',t:'Conservador'}, {v:Counts.mod,c:'#f59e0b',t:'Moderado'}, {v:Counts.ous,c:'#ef4444',t:'Ousado'} ];
+      let acc=0, arcs=[]; const cx=pw/2, cy=ph*0.38, r=Math.min(pw,ph)*0.22;
+      parts.forEach(p=>{ const a0=acc/total*2*Math.PI; acc+=p.v; const a1=acc/total*2*Math.PI; const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2); const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2); const large=(a1-a0)>Math.PI?1:0; const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`; arcs.push(`<path d="${d}" fill="${p.c}" opacity=".92" stroke="rgba(255,255,255,.08)"/>`); });
+      const pct=(m)=> Math.round(m/total*100);
+      const slot = pw/3; const ly = ph*0.80;
+      const legend = parts.map((p,i)=>{ const lx = slot*i + slot*0.15; return `<circle cx="${lx}" cy="${ly}" r="6" fill="${p.c}"/>\n<text x="${lx+14}" y="${ly+4}" font-size="14" fill="#cbd6ee">${p.t} ${pct(p.v)}%</text>`; }).join('');
+      pieSvg.innerHTML = `<g>${arcs.join('')}</g>${legend}`;
     }
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
+
+    function renderBar(Counts){
+      const total = Math.max(1, Counts.alta+Counts.moderada+Counts.baixa);
+      const maxv = Math.max(Counts.alta,Counts.moderada,Counts.baixa,1);
+      const margin = {l: Math.max(24, bw*0.06), r: Math.max(24, bw*0.06), t: Math.max(24, bh*0.08), b: Math.max(28, bh*0.16)};
+      const plotW = bw - margin.l - margin.r;
+      const plotH = bh - margin.t - margin.b;
+      const bars = [ {key:'Baixa',v:Counts.baixa,c:'#ef4444'}, {key:'Moderada',v:Counts.moderada,c:'#f59e0b'}, {key:'Alta',v:Counts.alta,c:'#22c55e'} ];
+      const bwid = Math.min(80, plotW/5);
+      const gap  = (plotW - 3*bwid) / 4; // CORREÇÃO: 4 gaps (esq, 2 internos, dir)
+      let x = margin.l + gap;
+      const items = bars.map(b=>{ const h = plotH*(b.v/maxv); const y = margin.t + (plotH - h); const pct = Math.round(100*b.v/total); const cx = x + bwid/2; const dom = `<rect x="${x}" y="${y}" width="${bwid}" height="${h}" fill="${b.c}" rx="10"/>
+        <text x="${cx}" y="${Math.max(margin.t+16, y-12)}" text-anchor="middle" font-size="18" fill="#eaf1ff" font-weight="800">${Math.round(b.v)} (${pct}%)</text>
+        <text x="${cx}" y="${bh - margin.b/2}" text-anchor="middle" font-size="14" fill="#cbd6ee">${b.key}</text>`; x += bwid + gap; return dom; }).join('');
+      const frame = `<rect x="${margin.l}" y="${margin.t}" width="${plotW}" height="${plotH}" fill="none" stroke="rgba(255,255,255,.12)"/>`;
+      barSvg.innerHTML = frame + items + `<title>Atenção: Baixa/Moderada/Alta</title>`;
+    }
+
+    const p = prev || {cons:0,mod:0,ous:0, attA:0,attM:0,attB:0};
+    const n = cur;
+    const t0 = performance.now();
+    function step(t){
+      const k = clamp((t - t0)/ANIM_MS, 0, 1);
+      const pieNow = { cons: p.cons + (n.cons-p.cons)*k, mod: p.mod + (n.mod-p.mod)*k, ous: p.ous + (n.ous-p.ous)*k };
+      const barNow = { alta: p.attA + (n.attA-p.attA)*k, moderada: p.attM + (n.attM-p.attM)*k, baixa: p.attB + (n.attB-p.attB)*k };
+      renderPie(pieNow); renderBar(barNow);
+      if(k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
 
-  // ===== Gráficos
-  function drawPieRisco(id, counts){
-    const total = Math.max(1, counts.cons+counts.mod+counts.ous);
-    const el = document.getElementById(id);
-    const parts = [ {v:counts.cons,c:'#22c55e'}, {v:counts.mod,c:'#f59e0b'}, {v:counts.ous,c:'#ef4444'} ];
-    let acc=0, arcs=[];
-    parts.forEach(p=>{
-      const a0=acc/total*2*Math.PI; acc+=p.v; const a1=acc/total*2*Math.PI;
-      const r=42,cx=50,cy=50;
-      const x0=cx+r*Math.cos(a0-Math.PI/2), y0=cy+r*Math.sin(a0-Math.PI/2);
-      const x1=cx+r*Math.cos(a1-Math.PI/2), y1=cy+r*Math.sin(a1-Math.PI/2);
-      const large=(a1-a0)>Math.PI?1:0;
-      const d=`M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
-      arcs.push(`<path d="${d}" fill="${p.c}" opacity=".85" stroke="rgba(255,255,255,.08)"/>`);
-    });
-    const pct = m => Math.round(m/total*100);
-    el.innerHTML = `<g>${arcs.join('')}</g>
-      <text x="50" y="48" text-anchor="middle" font-size="10" fill="#cbd6ee">Conservador</text>
-      <text x="50" y="60" text-anchor="middle" font-size="12" fill="#eaf1ff" font-weight="700">${pct(counts.cons)}%</text>`;
-  }
-
-  function drawBarAtencao(id, counts){
-    const el = document.getElementById(id);
-    const maxv = Math.max(counts.alta,counts.moderada,counts.baixa,1);
-    const bars = [
-      {x:15,w:20,v:counts.baixa,c:'#ef4444',t:'Baixa'},
-      {x:40,w:20,v:counts.moderada,c:'#f59e0b',t:'Moderada'},
-      {x:65,w:20,v:counts.alta,c:'#22c55e',t:'Alta'}
-    ];
-    const rects = bars.map(b=>{
-      const h=70*(b.v/maxv); const y=85-h;
-      return `<rect x="${b.x}" y="${y}" width="${b.w}" height="${h}" fill="${b.c}" rx="4"/>
-              <text x="${b.x+b.w/2}" y="80" text-anchor="middle" font-size="10" fill="#cbd6ee">${b.t}</text>
-              <text x="${b.x+b.w/2}" y="${y-4}" text-anchor="middle" font-size="11" fill="#eaf1ff" font-weight="700">${b.v}</text>`;
-    }).join('');
-    el.innerHTML = `<rect x="8" y="10" width="84" height="80" fill="none" stroke="rgba(255,255,255,.12)"/>${rects}`;
-  }
-
-  // ===== Ordenação
-  function sortRows(rows, mode){
-    // usando o parser robusto ‘num’ e deixando nulos por último
-    const byMedia = (a,b) => {
-      const na = num(a.MediaGeral), nb = num(b.MediaGeral);
-      if (na === null && nb === null) return 0;
-      if (na === null) return 1;
-      if (nb === null) return -1;
-      return na - nb; // crescente; desc inverte no switch
-    };
-    const byDate = (a,b) => (new Date(a.DataHora) - new Date(b.DataHora));
-
-    if(mode==='media_asc')  return rows.sort(byMedia);
-    if(mode==='media_desc') return rows.sort((a,b)=> -byMedia(a,b));
-    if(mode==='data_asc')   return rows.sort(byDate);
-    if(mode==='data_desc')  return rows.sort((a,b)=> -byDate(a,b));
-    return rows;
-  }
-
-  // ===== JSONP loader (sem CORS)
-  function jsonp(url){
-    return new Promise((resolve,reject)=>{
-      const cbName = '__cb_' + Math.random().toString(36).slice(2);
-      const cleanup = ()=>{ delete window[cbName]; if(s&&s.parentNode) s.parentNode.removeChild(s); if(t) clearTimeout(t); };
-      window[cbName] = (data)=>{ cleanup(); resolve(data); };
-      const s = document.createElement('script');
-      s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cbName + '&ts=' + Date.now();
-      s.onerror = ()=>{ cleanup(); reject(new Error('Falha JSONP')); };
-      document.body.appendChild(s);
-      const t = setTimeout(()=>{ cleanup(); reject(new Error('Timeout JSONP')); }, 15000);
-    });
-  }
+  function jsonp(url){ return new Promise((resolve,reject)=>{ const cbName='__cb_'+Math.random().toString(36).slice(2); const cleanup=()=>{ delete window[cbName]; if(s&&s.parentNode) s.parentNode.removeChild(s); if(t) clearTimeout(t); }; window[cbName]=(data)=>{ cleanup(); resolve(data); }; const s=document.createElement('script'); s.src=url+(url.includes('?')?'&':'?')+'callback='+cbName+'&ts='+Date.now(); s.onerror=()=>{ cleanup(); reject(new Error('Falha JSONP')); }; document.body.appendChild(s); const t=setTimeout(()=>{ cleanup(); reject(new Error('Timeout JSONP')); },15000); }); }
 
   async function load(){
-    const base = ENDPOINT + '?action=list';
     status.textContent = 'Atualizando…';
     try{
-      const data = await jsonp(base);
+      const data = await jsonp(ENDPOINT+'?action=list');
       if(!data || data.status!=='OK') throw new Error('Formato inválido');
-      render(data.rows||[]);
+      const rows = (data.rows||[]).map(normalizeRow);
+      cache = rows;
+      render(rows);
       status.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
-    }catch(e){
-      status.textContent = 'Falha ao atualizar';
-    }
+      dataInfo.textContent = rows.length + ' registros';
+    }catch(e){ status.textContent = 'Falha ao atualizar'; if(cache) render(cache); }
   }
 
+  function computeMetrics(arr){
+    const n = arr.length;
+    const avg = n ? (arr.reduce((s,r)=> s + (r.Media ?? 0), 0) / n) : 0;
+    const cons = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('conservador')).length;
+    const mod  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('moderado')).length;
+    const ous  = arr.filter(r=> (r.PerfilRisco||'').toLowerCase().includes('ousado')).length;
+    const attA = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('alta')).length;
+    const attM = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('modera')).length;
+    const attB = arr.filter(r=> (r.PerfilAtencao||'').toLowerCase().includes('baixa')).length;
+    return { n, avg, cons, mod, ous, attA, attM, attB };
+  }
+
+  function animateNumber(el, fromV, toV, suffix=''){ const t0=performance.now(); function frame(t){ const k = Math.min(1, (t-t0)/ANIM_MS); const v = fromV + (toV-fromV)*k; el.textContent = suffix==='%'? Math.round(v)+suffix : (Math.round(v*10)/10)+(suffix||''); if(k<1) requestAnimationFrame(frame); } requestAnimationFrame(frame); }
+  function setDelta(el, oldV, newV, asPercent=false){ if(oldV==null){ el.textContent='—'; el.className='delta zero'; return; } const d = (newV - oldV); const txt = (d>0?'+':'') + (asPercent? Math.round(d) : Math.round(d)) + (asPercent?'%':''); el.textContent = 'Δ ' + txt; el.className = 'delta ' + (d>0?'up': d<0?'down':'zero'); }
+
   function render(rows){
-    // ordena e exibe
-    const arr = sortRows(rows.slice(0,50), ORDER_MODE);
+    const arr = sortRows(rows.slice(0,100), ORDER_MODE);
     tbody.innerHTML = '';
     arr.forEach((r,i)=>{
-      const m = num(r.MediaGeral);
+      const m = r.Media;
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="width:40px">${i+1}</td>
+      tr.innerHTML = `
+        <td style=\"width:40px\">${i+1}</td>
         <td>${r.Nome||'-'}</td>
-        <td><b>${m===null?'-':m.toFixed(2)}</b></td>
+        <td><b>${m==null?'-':(Math.round(m)+'%')}</b></td>
         <td>${badgeRisco(r.PerfilRisco||'')}</td>
         <td>${badgeAtencao(r.PerfilAtencao||'')}</td>
-        <td class="small">${fmtDate(r.DataHora)}</td>`;
+        <td class=\"small\">${fmtDate(r.DataHora)}</td>`;
       tbody.appendChild(tr);
     });
 
-    // KPIs & gráficos (com base nos exibidos)
-    const n = arr.length;
-    const avg = n ? (arr.reduce((s,r)=> s + (num(r.MediaGeral) ?? 0), 0) / n) : 0;
-    const cons = arr.filter(r=> r.PerfilRisco==='Perfil Conservador').length;
-    const mod  = arr.filter(r=> r.PerfilRisco==='Perfil Moderado').length;
-    const ous  = arr.filter(r=> r.PerfilRisco==='Perfil Ousado').length;
-    const attA = arr.filter(r=> /Alta/i.test(r.PerfilAtencao||'')).length;
-    const attM = arr.filter(r=> /Moderada/i.test(r.PerfilAtencao||'')).length;
-    const attB = arr.filter(r=> /Baixa/i.test(r.PerfilAtencao||'')).length;
+    const cur = computeMetrics(arr); const prev = prevMetrics || null;
+    const v_total = cur.n; const v_media = cur.avg; // % 0..100
+    const v_cons = Math.round(100*cur.cons/Math.max(1,cur.n));
+    const v_ous  = Math.round(100*cur.ous/Math.max(1,cur.n));
+    const p_total = prev? prev.n : v_total;
+    const p_media = prev? prev.avg : v_media;
+    const p_cons  = prev? Math.round(100*prev.cons/Math.max(1,prev.n)) : v_cons;
+    const p_ous   = prev? Math.round(100*prev.ous/Math.max(1,prev.n)) : v_ous;
 
-    k_total.textContent = n;
-    k_media.textContent = avg.toFixed(2);
-    k_cons.textContent = Math.round(100*cons/Math.max(1,n));
-    k_ous.textContent = Math.round(100*ous/Math.max(1,n));
+    animateNumber(k_total, p_total, v_total, '');
+    animateNumber(k_media, p_media, v_media, '%');
+    animateNumber(k_cons,  p_cons,  v_cons,  '%');
+    animateNumber(k_ous,   p_ous,   v_ous,   '%');
+    setDelta(d_total, prev?prev.n:null, v_total, false);
+    setDelta(d_media, prev?prev.avg:null, v_media, true);
+    setDelta(d_cons,  prev?Math.round(100*prev.cons/Math.max(1,prev.n)):null, v_cons, true);
+    setDelta(d_ous,   prev?Math.round(100*prev.ous/Math.max(1,prev.n)):null, v_ous, true);
 
-    drawPieRisco('pieRisco', {cons,mod,ous});
-    drawBarAtencao('barAtencao', {alta:attA, moderada:attM, baixa:attB});
+    curMetrics = cur; drawCharts(cur, prev); prevMetrics = cur;
   }
 
-  function start(){
-    clearInterval(timer); timer = setInterval(load, REFRESH_MS); load();
-  }
+  function start(){ clearInterval(timer); timer = setInterval(load, REFRESH_MS); load(); }
 
-  // ===== Fullscreen helpers
-  function toggleFull(){
-    if(document.fullscreenElement){ document.exitFullscreen(); }
-    else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }
-  }
-  document.addEventListener('keydown', (e)=>{
-    if(e.key==='f' || e.key==='F') toggleFull();
-    if(e.key==='r' || e.key==='R') load();
-  });
+  function setOrder(mode){ ORDER_MODE = mode; btnOrderScore.classList.toggle('active', mode==='media_desc'); btnOrderDate.classList.toggle('active', mode!=='media_desc'); if(cache) render(cache); }
+  btnOrderScore.addEventListener('click', ()=> setOrder('media_desc'));
+  btnOrderDate.addEventListener('click', ()=> setOrder('data_desc'));
+
+  function toggleFull(){ if(document.fullscreenElement){ document.exitFullscreen(); } else { document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); } }
+  document.addEventListener('keydown', (e)=>{ if(e.key==='f'||e.key==='F') toggleFull(); if(e.key==='r'||e.key==='R') load(); });
   document.addEventListener('dblclick', toggleFull);
 
-  // init
   start();
 })();
 </script>
